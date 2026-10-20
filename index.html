@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="mobile-web-app-capable" content="yes">
 <title>TETRIS GAME</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -14,9 +13,9 @@ body{background:#080c14;color:#fff;font-family:system-ui;display:flex;justify-co
 #next{width:56px;height:34px;background:#0b1222;border:1px solid #1e293b;border-radius:8px;display:grid;place-items:center}
 .boardWrap{flex:1;min-height:0;background:#0b1222;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px}
 #board{display:block;background:#0b1222;border-radius:6px}
-.controls{flex-shrink:0;height:86px;min-height:72px;background:#0a0f1c;border-top:1px solid #1e293b;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
-.cbtn{width:100%;height:58px;background:#1c2740;border:1px solid #2a3a54;border-radius:14px;color:#fff;font-size:22px;font-weight:800;display:grid;place-items:center;touch-action:none;user-select:none;transition:transform 0.08s ease, background 0.08s ease}
-.cbtn.pressed{transform:scale(0.88) !important;background:#2f456e !important;border-color:#4a6490 !important}
+.controls{flex-shrink:0;height:86px;min-height:72px;background:#0a0f1c;border-top:1px solid #1e293b;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+.cbtn{width:100%;height:58px;background:#1c2740;border:1px solid #2a3a54;border-radius:14px;color:#fff;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none}
+.cbtn.pressed{transform:scale(0.88) !important;background:#2f456e !important}
 .overlay{position:absolute;inset:0;background:rgba(5,10,20,.93);display:flex;align-items:center;justify-content:center;z-index:10}
 .overlay.hide{display:none}
 .box{background:#17213a;border:1px solid #253352;border-radius:16px;padding:20px;width:86%;max-width:300px;text-align:center}
@@ -25,123 +24,104 @@ body{background:#080c14;color:#fff;font-family:system-ui;display:flex;justify-co
 </style>
 </head>
 <body>
-<div class="app" id="app">
+<div class="app">
 <div class="top"><div>SCORE <b id="score">0</b></div><div style="width:44px;height:30px;background:#1e293b;border-radius:8px;display:grid;place-items:center;font-weight:800" id="pauseBtn">II</div><div style="display:flex;align-items:center;gap:6px;font-size:10px">NEXT<div id="next"></div></div></div>
 <div class="boardWrap" id="wrap"><canvas id="board" width="300" height="600"></canvas></div>
-<div class="controls"><button class="cbtn" id="left">←</button><button class="cbtn" id="rot">↻</button><button class="cbtn" id="down">↓</button><button class="cbtn" id="right">→</button></div>
-<div class="overlay" id="startOv"><div class="box"><h2>TETRIS GAME</h2><p style="margin:8px 0 12px;font-size:13px;color:#94a3b8">Siap main?</p><button class="btn primary" id="startBtn">Mulai Game</button></div></div>
+<div class="controls">
+<button class="cbtn" id="left"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+<button class="cbtn" id="down"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg></button>
+<button class="cbtn" id="right"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></button>
+</div>
+<div class="overlay" id="startOv"><div class="box"><h2>TETRIS GAME</h2><p style="margin:8px 0 12px;font-size:13px;color:#94a3b8">Rotasi di papan</p><button class="btn primary" id="startBtn">Mulai Game</button></div></div>
 <div class="overlay hide" id="pauseOv"><div class="box"><h2>PAUSED</h2><p id="pauseInfo"></p><button class="btn primary" id="resume">Lanjut</button><button class="btn" id="surrender">Menyerah</button></div></div>
 <div class="overlay hide" id="gameOv"><div class="box"><h2>GAME OVER</h2><p id="gameSub"></p><button class="btn primary" id="playAgain">Main Lagi</button><button class="btn" id="mainMenuBtn">Main Menu</button></div></div>
 </div>
 <script>
 var COLS=10,ROWS=20,CELL=30;
 var COLORS={I:'#22d3ee',J:'#3b82f6',L:'#f59e0b',O:'#fde047',S:'#22c55e',T:'#a78bfa',Z:'#ef4444'};
-var SH={
-I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
-J:[[1,0,0],[1,1,1],[0,0,0]],
-L:[[0,0,1],[1,1,1],[0,0,0]],
-O:[[1,1],[1,1]],
-S:[[0,1,1],[1,1,0],[0,0,0]],
-T:[[0,1,0],[1,1,1],[0,0,0]],
-Z:[[1,1,0],[0,1,1],[0,0,0]]
-};
-var board=[],bag=[],queue=[],cur=null,score=0,over=false,paused=false,timer=null,lockTimer=null,flashing=[];
-var canvas=document.getElementById('board');var ctx=canvas.getContext('2d');
-var wrap=document.getElementById('wrap');
-function fitBoard(){
-  var topH=document.querySelector('.top').offsetHeight;
-  var ctrlH=document.querySelector('.controls').offsetHeight;
-  var availH=window.innerHeight - topH - ctrlH - 12;
-  var availW=wrap.clientWidth - 12;
-  var bw=Math.min(availW, availH*0.5, 360);
-  if(bw<180) bw=180;
-  var bh=bw*2;
-  canvas.style.width=bw+'px';
-  canvas.style.height=bh+'px';
-}
+var SH={I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],J:[[1,0,0],[1,1,1],[0,0,0]],L:[[0,0,1],[1,1,1],[0,0,0]],O:[[1,1],[1,1]],S:[[0,1,1],[1,1,0],[0,0,0]],T:[[0,1,0],[1,1,1],[0,0,0]],Z:[[1,1,0],[0,1,1],[0,0,0]]};
+var board=[],bag=[],queue=[],cur=null,score=0,over=false,paused=false,timer=null,lockTimer=null,clearTimer=null,flashing=[];
+var canvas=document.getElementById('board');var ctx=canvas.getContext('2d');var wrap=document.getElementById('wrap');
+function fitBoard(){var topH=document.querySelector('.top').offsetHeight;var ctrlH=document.querySelector('.controls').offsetHeight;var availH=window.innerHeight-topH-ctrlH-12;var availW=wrap.clientWidth-12;var bw=Math.min(availW,availH*0.5,360);if(bw<180)bw=180;canvas.style.width=bw+'px';canvas.style.height=bw*2+'px';}
 window.addEventListener('resize',fitBoard);
-window.addEventListener('orientationchange',function(){setTimeout(fitBoard,200)});
 function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
-function refill(){bag=shuffle(['I','J','L','O','S','T','Z','I','J','L','O','S','T','Z']);}
+function refill(){bag=shuffle(['I','J','L','O','S','T','Z']);}
 function nextType(){if(bag.length==0)refill();return bag.pop();}
-function fixShape(s){var c=0;for(var y=0;y<s.length;y++)for(var x=0;x<s[y].length;x++)if(s[y][x])c++;if(c<=4)return s;var k=0;for(var y=0;y<s.length;y++)for(var x=0;x<s[y].length;x++)if(s[y][x]){k++;if(k>4)s[y][x]=0;}return s;}
-function make(t){var s=SH[t];var cp=[];for(var y=0;y<s.length;y++){cp[y]=[];for(var x=0;x<s[y].length;x++)cp[y][x]=s[y][x];}cp=fixShape(cp);return {type:t,shape:cp,x:3,y:t=='I'?-1:0,color:COLORS[t]};}
-function rotate(m){var N=m.length;var r=[];for(var y=0;y<N;y++){r[y]=[];for(var x=0;x<N;x++)r[y][x]=0;}for(var y=0;y<N;y++)for(var x=0;x<N;x++)r[x][N-1-y]=m[y][x];r=fixShape(r);return r;}
+function fixShape(s){return s;}
+function make(t){var s=SH[t];var cp=[];for(var y=0;y<s.length;y++){cp[y]=[];for(var x=0;x<s[y].length;x++)cp[y][x]=s[y][x];}return {type:t,shape:cp,x:3,y:t=='I'?-1:0,color:COLORS[t]};}
+function rotate(m){var N=m.length;var r=[];for(var y=0;y<N;y++){r[y]=[];for(var x=0;x<N;x++)r[y][x]=0;}for(var y=0;y<N;y++)for(var x=0;x<N;x++)r[x][N-1-y]=m[y][x];return r;}
 function collide(bd,p,dx,dy,sh){dx=dx||0;dy=dy||0;var s=sh||p.shape;for(var y=0;y<s.length;y++)for(var x=0;x<s[y].length;x++)if(s[y][x]){var nx=p.x+x+dx,ny=p.y+y+dy;if(nx<0||nx>=COLS||ny>=ROWS)return true;if(ny>=0&&bd[ny]&&bd[ny][nx])return true;}return false;}
 function merge(bd,p){for(var y=0;y<p.shape.length;y++)for(var x=0;x<p.shape[y].length;x++)if(p.shape[y][x]&&p.y+y>=0)bd[p.y+y][p.x+x]=p.color;}
-function clearLines(){var rows=[];for(var y=0;y<ROWS;y++){var full=true;for(var x=0;x<COLS;x++)if(!board[y][x])full=false;if(full)rows.push(y);}if(rows.length>0){flashing=rows;draw();setTimeout(function(){for(var i=rows.length-1;i>=0;i--){board.splice(rows[i],1);board.unshift([null,null,null,null,null,null,null,null,null,null]);}flashing=[];score+=rows.length*10;spawn();draw();},140);}return rows.length;}
-function ghostY(p){var g={x:p.x,y:p.y,shape:p.shape};while(!collide(board,g,0,1))g.y++;return g.y;}
+function ghostY(p){var gy=p.y;var s=0;while(s<ROWS+5){if(collide(board,{x:p.x,y:gy+1,shape:p.shape}))break;gy++;s++;if(gy>=ROWS)break;}return gy;}
 function draw(){
 ctx.clearRect(0,0,300,600);
 ctx.strokeStyle='#16233f';ctx.lineWidth=1;
-for(var i=0;i<=COLS;i++){
-  var x = i*CELL+0.5;
-  if(i==COLS) x = 299.5;
-  ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,600);ctx.stroke();
-}
-for(var i=0;i<=ROWS;i++){
-  var y = i*CELL+0.5;
-  if(i==ROWS) y = 599.5;
-  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(300,y);ctx.stroke();
-}
+for(var i=0;i<=COLS;i++){var x=i*CELL+0.5;if(i==COLS)x=299.5;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,600);ctx.stroke();}
+for(var i=0;i<=ROWS;i++){var y=i*CELL+0.5;if(i==ROWS)y=599.5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(300,y);ctx.stroke();}
 for(var y=0;y<ROWS;y++)for(var x=0;x<COLS;x++)if(board[y][x]){
-  if(flashing.indexOf(y)!==-1){
-    ctx.fillStyle='#ffffff';
-    ctx.fillRect(x*CELL+1,y*CELL+1,CELL-2,CELL-2);
-  } else {
-    ctx.fillStyle=board[y][x];
-    ctx.fillRect(x*CELL+1,y*CELL+1,CELL-2,CELL-2);
-  }
+  ctx.fillStyle=flashing.indexOf(y)!==-1?'#ffffff':board[y][x];
+  ctx.fillRect(x*CELL+1,y*CELL+1,CELL-2,CELL-2);
 }
 if(cur&&!over&&flashing.length==0){
-var gy=ghostY(cur);
-ctx.strokeStyle=cur.color;ctx.lineWidth=2;ctx.globalAlpha=0.35;
-for(var y=0;y<cur.shape.length;y++)for(var x=0;x<cur.shape[y].length;x++)if(cur.shape[y][x])ctx.strokeRect((cur.x+x)*CELL+2,gy*CELL+y*CELL+2,CELL-4,CELL-4);
-ctx.globalAlpha=1;
-for(var y=0;y<cur.shape.length;y++)for(var x=0;x<cur.shape[y].length;x++)if(cur.shape[y][x]&&cur.y+y>=0){ctx.fillStyle=cur.color;ctx.fillRect((cur.x+x)*CELL+1,(cur.y+y)*CELL+1,CELL-2,CELL-2);}
+ var gy=ghostY(cur);
+ ctx.strokeStyle=cur.color;ctx.lineWidth=2;ctx.globalAlpha=0.25;
+ for(var y=0;y<cur.shape.length;y++)for(var x=0;x<cur.shape[y].length;x++)if(cur.shape[y][x])ctx.strokeRect((cur.x+x)*CELL+2,gy*CELL+y*CELL+2,CELL-4,CELL-4);
+ ctx.globalAlpha=1;
+ for(var y=0;y<cur.shape.length;y++)for(var x=0;x<cur.shape[y].length;x++)if(cur.shape[y][x]&&cur.y+y>=0){ctx.fillStyle=cur.color;ctx.fillRect((cur.x+x)*CELL+1,(cur.y+y)*CELL+1,CELL-2,CELL-2);}
 }
 document.getElementById('score').textContent=score;
 }
 function drawNext(){var el=document.getElementById('next');el.innerHTML='';var p=queue[0];if(!p)return;var s=SH[p.type];var c=document.createElement('canvas');c.width=54;c.height=32;var cx=c.getContext('2d');for(var y=0;y<s.length;y++)for(var x=0;x<s[y].length;x++)if(s[y][x]){cx.fillStyle=p.color;cx.fillRect(x*6+10,y*6+4,5,5);}el.appendChild(c);}
 function spawn(){cur=queue.shift();queue.push(make(nextType()));if(collide(board,cur))return gameOver();drawNext();clearTimeout(lockTimer);lockTimer=null;}
-function lock(){if(flashing.length>0)return;merge(board,cur);var n=clearLines();if(n==0){spawn();draw();}}
+
+function clearRowsInstant(){
+  var rows=[];
+  for(var y=0;y<ROWS;y++){
+    var full=true;
+    for(var x=0;x<COLS;x++){ if(!board[y][x]){full=false;break;} }
+    if(full) rows.push(y);
+  }
+  if(rows.length>0){
+    flashing=rows;
+    draw();
+    clearTimeout(clearTimer);
+    clearTimer=setTimeout(function(){
+      var newBoard=[];
+      for(var y=0;y<ROWS;y++){
+        if(rows.indexOf(y)===-1) newBoard.push(board[y]);
+      }
+      var cleared=ROWS-newBoard.length;
+      while(newBoard.length<ROWS){
+        newBoard.unshift([null,null,null,null,null,null,null,null,null,null]);
+      }
+      board=newBoard;
+      flashing=[];
+      score+=cleared*10;
+      spawn();
+      draw();
+    },60);
+    return true;
+  }
+  return false;
+}
+
+function lock(){merge(board,cur);if(!clearRowsInstant()){spawn();draw();}}
 function resetT(){clearInterval(timer);timer=setInterval(function(){if(!over&&!paused)autoDown();},700);}
-function autoDown(){if(over||paused||flashing.length>0)return;if(!collide(board,cur,0,1)){cur.y++;if(lockTimer){clearTimeout(lockTimer);lockTimer=null;}draw();}else{if(!lockTimer)lockTimer=setTimeout(function(){lock();},400);}}
+function autoDown(){if(over||paused||flashing.length>0)return;if(!collide(board,cur,0,1)){cur.y++;if(lockTimer){clearTimeout(lockTimer);lockTimer=null;}draw();}else{if(!lockTimer)lockTimer=setTimeout(function(){lock();},200);}}
 function move(d){if(over||paused||flashing.length>0)return;if(!collide(board,cur,d,0)){cur.x+=d;draw();}}
 function rot(){if(over||paused||flashing.length>0)return;var ns=rotate(cur.shape);var kicks=[0,-1,1,-2,2];if(cur.type=='I')kicks=[0,-2,2,-1,1];for(var i=0;i<kicks.length;i++){var k=kicks[i];if(!collide(board,cur,k,0,ns)){cur.x+=k;cur.shape=ns;draw();return;}}}
-function gameOver(){over=true;clearInterval(timer);clearTimeout(lockTimer);document.getElementById('gameSub').textContent='Score '+score;document.getElementById('gameOv').classList.remove('hide');}
-function start(){board=[];for(var y=0;y<ROWS;y++){board[y]=[];for(var x=0;x<COLS;x++)board[y][x]=null;}bag=[];refill();queue=[];for(var i=0;i<5;i++)queue.push(make(nextType()));score=0;flashing=[];over=false;paused=false;spawn();draw();document.getElementById('startOv').classList.add('hide');document.getElementById('pauseOv').classList.add('hide');document.getElementById('gameOv').classList.add('hide');resetT();fitBoard();}
-function initStartScreen(){
-  clearInterval(timer);clearTimeout(lockTimer);
-  board=[];for(var y=0;y<ROWS;y++){board[y]=[];for(var x=0;x<COLS;x++)board[y][x]=null;}
-  bag=[];refill();queue=[];for(var i=0;i<5;i++)queue.push(make(nextType()));
-  score=0;flashing=[];over=false;paused=false;cur=null;
-  draw();drawNext();
-  document.getElementById('gameOv').classList.add('hide');
-  document.getElementById('pauseOv').classList.add('hide');
-  document.getElementById('startOv').classList.remove('hide');
-  document.getElementById('score').textContent='0';
-  fitBoard();
-}
+function gameOver(){over=true;clearInterval(timer);clearTimeout(lockTimer);clearTimeout(clearTimer);document.getElementById('gameSub').textContent='Score '+score;document.getElementById('gameOv').classList.remove('hide');}
+function start(){clearInterval(timer);clearTimeout(lockTimer);clearTimeout(clearTimer);board=[];for(var y=0;y<ROWS;y++){board[y]=[];for(var x=0;x<COLS;x++)board[y][x]=null;}bag=[];refill();queue=[];for(var i=0;i<5;i++)queue.push(make(nextType()));score=0;flashing=[];over=false;paused=false;spawn();draw();document.getElementById('startOv').classList.add('hide');document.getElementById('pauseOv').classList.add('hide');document.getElementById('gameOv').classList.add('hide');resetT();fitBoard();}
+function initStartScreen(){clearInterval(timer);clearTimeout(lockTimer);clearTimeout(clearTimer);board=[];for(var y=0;y<ROWS;y++){board[y]=[];for(var x=0;x<COLS;x++)board[y][x]=null;}bag=[];refill();queue=[];for(var i=0;i<5;i++)queue.push(make(nextType()));score=0;flashing=[];over=false;paused=false;cur=null;draw();drawNext();document.getElementById('gameOv').classList.add('hide');document.getElementById('pauseOv').classList.add('hide');document.getElementById('startOv').classList.remove('hide');document.getElementById('score').textContent='0';fitBoard();}
 function hold(id,fn){var el=document.getElementById(id);var ht=null,rep=null;var s=function(e){e.preventDefault();el.classList.add('pressed');fn();clearTimeout(ht);clearInterval(rep);ht=setTimeout(function(){rep=setInterval(fn,70);},200);};var ee=function(){el.classList.remove('pressed');clearTimeout(ht);clearInterval(rep);};el.addEventListener('touchstart',s,{passive:false});el.addEventListener('touchend',ee);el.addEventListener('touchcancel',ee);el.addEventListener('mousedown',s);el.addEventListener('mouseup',ee);el.addEventListener('mouseleave',ee);}
 hold('left',function(){move(-1);});hold('right',function(){move(1);});hold('down',function(){if(!collide(board,cur,0,1)){cur.y++;draw();}});
-var rotBtn=document.getElementById('rot');
-function rotDown(e){e.preventDefault();rotBtn.classList.add('pressed');rot();}
-function rotUp(){rotBtn.classList.remove('pressed');}
-rotBtn.addEventListener('touchstart',rotDown,{passive:false});
-rotBtn.addEventListener('touchend',rotUp);
-rotBtn.addEventListener('touchcancel',rotUp);
-rotBtn.addEventListener('mousedown',rotDown);
-rotBtn.addEventListener('mouseup',rotUp);
-rotBtn.addEventListener('mouseleave',rotUp);
-document.getElementById('playAgain').onclick=start;
-document.getElementById('startBtn').onclick=start;
-document.getElementById('mainMenuBtn').onclick=initStartScreen;
-document.getElementById('pauseBtn').onclick=function(){if(over)return;paused=true;clearInterval(timer);document.getElementById('pauseInfo').textContent='Score '+score;document.getElementById('pauseOv').classList.remove('hide');};
+var lastRotTime=0,boardTouchActive=false;function handleBoardTap(e){e.preventDefault();if(boardTouchActive)return;if(over||paused||flashing.length>0)return;if(!cur)return;var now=Date.now();if(now-lastRotTime<250)return;lastRotTime=now;boardTouchActive=true;rot();}function handleBoardRelease(){boardTouchActive=false;}
+canvas.addEventListener('touchstart',handleBoardTap,{passive:false});canvas.addEventListener('mousedown',handleBoardTap);canvas.addEventListener('touchend',handleBoardRelease);canvas.addEventListener('touchcancel',handleBoardRelease);canvas.addEventListener('mouseup',handleBoardRelease);canvas.addEventListener('mouseleave',handleBoardRelease);
+document.getElementById('playAgain').onclick=start;document.getElementById('startBtn').onclick=start;document.getElementById('mainMenuBtn').onclick=initStartScreen;
+document.getElementById('pauseBtn').onclick=function(){if(over)return;paused=true;clearInterval(timer);clearTimeout(lockTimer);document.getElementById('pauseInfo').textContent='Score '+score;document.getElementById('pauseOv').classList.remove('hide');};
 document.getElementById('resume').onclick=function(){paused=false;document.getElementById('pauseOv').classList.add('hide');resetT();};
 document.getElementById('surrender').onclick=gameOver;
-initStartScreen();
-setTimeout(fitBoard,100);
+initStartScreen();setTimeout(fitBoard,100);
 </script>
 </body>
 </html>
